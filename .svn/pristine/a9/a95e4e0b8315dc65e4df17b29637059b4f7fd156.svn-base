@@ -1,0 +1,101 @@
+
+function SIPCal(amount, period, rateOfReturn, duration) {
+  if (!($.isNumeric(amount) && $.isNumeric(rateOfReturn) && $.isNumeric(duration))) {
+    return null;
+  }
+
+  amount = parseFloat(amount);
+  rateOfReturn = parseFloat(rateOfReturn);
+  duration = parseFloat(duration);
+
+  var nperiod = period * duration;
+  var futureValue = fv(rateOfReturn, period, nperiod, amount * -1, 0);
+
+  return futureValue;
+}
+ function fv(rate, period, nperiod, pmt, pv) {
+    if (pmt == 0 || nperiod == 0 || period == 0) {
+      return null;
+    }
+
+    rate = rate / (period * 100);
+
+    var futureValue;
+
+    if (rate === 0) {
+      futureValue = -(pv + (pmt * nperiod));
+    } else {
+      var x = Math.pow(1 + rate, nperiod);
+      futureValue = -(-pmt + x * pmt + rate * x * pv) / rate;
+    }
+
+    return futureValue;
+  }
+
+function formatNumber(nStr)
+{
+    nStr += '';
+    x = nStr.split('.');
+    x1 = x[0];
+    x2 = x.length > 1 ? '.' + x[1] : '';
+    var rgx = /(\d+)(\d{3})/;
+    while (rgx.test(x1)) {
+        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+    }
+    return x1 + x2;
+}
+function calculateSIP()
+{
+  var rrate = $('#return').val();
+  var duration = $('#duration').val();
+  var sipAmount = $('#sipAmount').val();
+  var freq = $( 'input[name=ptype]:checked' ).val();
+  freq = freq === 'quat' ? 4 : 12;
+
+  if(rrate > 0 && duration > 0 && sipAmount > 0)
+  {
+      var futureAmount = SIPCal(sipAmount,freq,rrate,duration);
+
+      futureAmount = futureAmount === null ? '0' : futureAmount / 1000;
+
+      var totalAmountInv = freq * duration * sipAmount;
+      totalAmountInv = totalAmountInv === null ? '0' : totalAmountInv / 1000;
+
+      var wealthGain = futureAmount - totalAmountInv;
+      wealthGain = wealthGain === null ? '0' : wealthGain;
+
+      $('#totalAmount').html(formatNumber(Math.round(futureAmount)) + ' (K)');
+      $('#invAmount').html(formatNumber(Math.round(totalAmountInv)) + ' (K)');
+      $('#gainAmount').html(formatNumber(Math.round(wealthGain)) + ' (K)');
+
+      //drawing chart
+      drawChart(Math.round(totalAmountInv),Math.round(wealthGain));
+  }
+}
+
+function drawChart(amountInv,amountGain)
+{
+  var ctx = document.getElementById("myChart");
+  options = {'animation.animateRotate' : 'true'};
+  data = {
+    datasets: [{
+        data: [amountInv, amountGain],
+        backgroundColor : [
+          '#043a42',
+          '#cdff16'
+        ]
+      
+    }],
+    // These labels appear in the legend and in the tooltips when hovering different arcs
+    labels: [
+        'Total Invested Amount(K)',
+        'Earning on investment(K)',
+    ]
+};
+  // And for a doughnut chart
+var myDoughnutChart = new Chart(ctx, {
+  type: 'doughnut',
+  data: data,
+  options: options
+});
+}
